@@ -1,0 +1,62 @@
+name: Build Switch Native App
+
+on:
+  workflow_dispatch:
+    inputs:
+      game_folder_name:
+        description: 'The name of your game folder inside ~/Games/'
+        required: true
+        default: 'MarioWonder'
+      build_platform:
+        description: 'Target platform (ipa or mac-app)'
+        required: true
+        default: 'ipa'
+        type: choice
+        options:
+          - ipa
+          - mac-app
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Build Tools & Dependencies
+        run: |
+          xcodebuild -downloadComponent MetalToolchain
+          brew install xcodegen zstd glslang
+          brew install --cask dotnet-sdk
+          python3 -m pip install lz4 capstone fonttools nsz "backports.zstd; python_version < '3.14'"
+
+      - name: Restore prod.keys
+        run: |
+          mkdir -p ~/keys
+          echo "${{ secrets.PROD_KEYS }}" > ~/keys/prod.keys
+
+      - name: Setup Game Directory
+        run: |
+          mkdir -p ~/Games/${{ github.event.inputs.game_folder_name }}
+
+      - name: Run Build Script
+        run: |
+          if [ "${{ github.event.inputs.build_platform }}" = "mac-app" ]; then
+            python3 scripts/build_ipa_from_nsp.py ~/Games/${{ github.event.inputs.game_folder_name }} -k ~/keys/prod.keys --platform mac-app
+          else
+            python3 scripts/build_ipa_from_nsp.py ~/Games/${{ github.event.inputs.game_folder_name }} -k ~/keys/prod.keys
+          fi
+
+      - name: Upload Compiled Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-game-output-${{ github.event.inputs.build_platform }}
+          path: |
+            ~/Games/**/*.ipa
+            ~/Games/**/*.app

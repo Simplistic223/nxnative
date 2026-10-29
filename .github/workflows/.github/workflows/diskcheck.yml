@@ -1,0 +1,13 @@
+name: Disk check
+on: workflow_dispatch
+
+jobs:
+  check:
+    runs-on: macos-26   # use the same runner label as your build workflow
+    steps:
+      - name: Show disk space
+        run: |
+          df -h /
+          sw_vers
+          xcodebuild -version || true
+          ls /Applications | grep -i xcode || true

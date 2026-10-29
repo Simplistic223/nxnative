@@ -41,9 +41,18 @@ jobs:
           mkdir -p ~/keys
           echo "${{ secrets.PROD_KEYS }}" > ~/keys/prod.keys
 
-      - name: Setup Game Directory
+      - name: Setup Game Directory & Download ROMs
         run: |
           mkdir -p ~/Games/${{ github.event.inputs.game_folder_name }}
+          
+          # Replace the URL below with your actual direct download link from Google Drive
+          curl -L "https://drive.google.com/file/d/1yrJiz5m54UWYyBoAI7QEssUVy7ICQK2m/view?usp=sharing" -o ~/Games/game.zip
+          
+          # Unzip the game files into the folder
+          unzip ~/Games/game.zip -d ~/Games/${{ github.event.inputs.game_folder_name }}/
+          
+          # Clean up the zip file
+          rm ~/Games/game.zip
 
       - name: Run Build Script
         run: |
